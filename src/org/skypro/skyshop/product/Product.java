@@ -1,21 +1,18 @@
 package org.skypro.skyshop.product;
 
-public class Product {
-    private final String name;  // Немодифицируемое поле (final)
-    private final int price;    // Немодифицируемое поле (final)
+public abstract class Product {
+    private final String name;
 
-    // Единственный конструктор
-    public Product(String name, int price) {
+    public Product(String name) {
         this.name = name;
-        this.price = price;
     }
 
-    // Геттеры для доступа
     public String getName() {
         return name;
     }
 
-    public int getPrice() {
-        return price;
-    }
+    public abstract int getPrice();
+
+    public abstract boolean isSpecial();  // Новый: подклассы реализуют
 }
+
