@@ -28,18 +28,24 @@ public class ProductBasket {
         return total;
     }
 
-    // Печать содержимого (void)
+    // Печать содержимого (void) — обновлённый для шага 5
     public void printBasket() {
         if (productCount == 0) {
             System.out.println("в корзине пусто");
             return;
         }
+
+        int specialCount = 0;  // Счётчик специальных товаров (скидка + фикс)
         for (int i = 0; i < productCount; i++) {
             if (products[i] != null) {
-                System.out.println(products[i].getName() + ": " + products[i].getPrice());
+                System.out.println(products[i].toString());  // Полиморфный вывод по формату toString()
+                if (products[i].isSpecial()) {  // Проверяем через метод (без instanceof)
+                    specialCount++;
+                }
             }
         }
         System.out.println("Итого: " + getTotalPrice());
+        System.out.println("Специальных товаров: " + specialCount);
     }
 
     // Проверка по имени (boolean)
