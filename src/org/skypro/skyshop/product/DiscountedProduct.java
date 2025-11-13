@@ -18,11 +18,18 @@ public class DiscountedProduct extends Product {
 
     @Override
     public boolean isSpecial() {
-        return true;  // Специальный: со скидкой
+        return true;
     }
 
     @Override
     public String toString() {
-        return getName() + ": " + getPrice() + " (" + discount + "%)";  // Формат: имя: стоимость (скидка%)
+        return getName() + ": " + getPrice() + " (" + discount + "%)";
+    }
+
+    // Добавлено: для совместимости с Searchable
+    @Override
+    public String getName() {
+        return super.getName();
     }
 }
+

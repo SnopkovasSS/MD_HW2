@@ -15,11 +15,18 @@ public class SimpleProduct extends Product {
 
     @Override
     public boolean isSpecial() {
-        return false;  // Обычный товар — не специальный
+        return false;
     }
 
     @Override
     public String toString() {
-        return getName() + ": " + getPrice();  // Формат: имя: стоимость
+        return getName() + ": " + getPrice();
     }
+
+    // Добавлено: для совместимости с Searchable (если IDE жалуется; иначе опционально)
+    @Override
+    public String getName() {
+        return super.getName();
+    }
+    // getSearchTerm(), getContentType() и getStringRepresentation() — от Product, не трогаем
 }

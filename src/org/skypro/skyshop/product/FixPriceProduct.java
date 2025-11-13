@@ -14,11 +14,18 @@ public class FixPriceProduct extends Product {
 
     @Override
     public boolean isSpecial() {
-        return true;  // Специальный: фиксированная цена
+        return true;
     }
 
     @Override
     public String toString() {
-        return getName() + ": Фиксированная цена " + FIXED_PRICE;  // Формат: имя: Фиксированная цена 1000
+        return getName() + ": Фиксированная цена " + FIXED_PRICE;
     }
+
+    // Добавлено: для совместимости с Searchable
+    @Override
+    public String getName() {
+        return super.getName();
+    }
+    // Другие методы Searchable — от Product
 }
