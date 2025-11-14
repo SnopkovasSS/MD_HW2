@@ -1,57 +1,84 @@
 package org.skypro.skyshop.search;
 
+import org.skypro.skyshop.article.Article;
 import org.skypro.skyshop.product.SimpleProduct;
 import org.skypro.skyshop.product.DiscountedProduct;
 import org.skypro.skyshop.product.FixPriceProduct;
-import org.skypro.skyshop.article.Article;
 
 public class SearchEngine {
-    private final Searchable[] items;  // Фиксированный массив
-    private int currentSize = 0;  // Трекер заполненности (для add())
+    private Searchable[] items;
+    private int currentSize;
 
-    // Конструктор: размер массива
-    public SearchEngine(int size) {
-        if (size <= 0) {
-            throw new IllegalArgumentException("Размер массива должен быть положительным");
-        }
-        this.items = new Searchable[size];
+    public SearchEngine(int capacity) {
+        this.items = new Searchable[capacity];
+        this.currentSize = 0;
     }
 
-    // add(): Добавляет Searchable, если место есть (увеличивает currentSize)
     public void add(Searchable item) {
-        if (currentSize < items.length) {
-            items[currentSize] = item;
-            currentSize++;
-        } else {
-            System.out.println("Массив полон, элемент не добавлен.");  // Опциональный лог, можно убрать
+        if (item != null && currentSize < items.length) {
+            items[currentSize++] = item;
         }
     }
 
-    // search(String query): Возвращает массив из 5 первых совпадений (или меньше)
-    public Searchable[] search(String query) {
-        if (query == null || query.trim().isEmpty()) {
-            return new Searchable[0];  // Пустой запрос — пустой результат
+    public Searchable[] search(String searchTerm) {
+        if (searchTerm == null || searchTerm.isBlank()) {
+            return new Searchable[0];
         }
-
-        Searchable[] results = new Searchable[5];  // Фикс 5 слотов (с null)
-        int foundCount = 0;
-
-        // Перебор всего массива
-        for (int i = 0; i < currentSize; i++) {  // Только заполненные
-            if (items[i] != null && items[i].getSearchTerm().toLowerCase().contains(query.toLowerCase())) {
-                results[foundCount] = items[i];
-                foundCount++;
-                if (foundCount == 5) {
-                    break;  // Прерываем после 5
-                }
+        searchTerm = searchTerm.toLowerCase();
+        Searchable[] results = new Searchable[5];
+        int resultCount = 0;
+        for (int i = 0; i < currentSize; i++) {
+            if (resultCount >= 5) {
+                break;
+            }
+            String term = items[i].getSearchTerm().toLowerCase();
+            if (term.contains(searchTerm)) {
+                results[resultCount++] = items[i];
             }
         }
-
-        // Если меньше 5, остаток null — OK по заданию
         return results;
     }
 
-    // Опционально: геттер для размера (для тестов)
+    // Обновлённый метод: поиск наиболее подходящего (шаг 3+4: + throw BestResultNotFound если не найден)
+    public Searchable findMostRelevant(String searchTerm) throws BestResultNotFound {
+        if (searchTerm == null || searchTerm.isBlank()) {
+            throw new BestResultNotFound(searchTerm);  // Throw для пустого запроса
+        }
+        searchTerm = searchTerm.toLowerCase();  // Case-insensitive
+        int maxOccurrences = -1;
+        Searchable bestMatch = null;
+        for (int i = 0; i < currentSize; i++) {
+            if (items[i] != null) {
+                String term = items[i].getSearchTerm().toLowerCase();
+                int occurrences = countOccurrences(term, searchTerm);
+                if (occurrences > maxOccurrences) {
+                    maxOccurrences =occurrences;
+                    bestMatch = items[i];
+                }
+                // Если == max, то первый (не меняем)
+            }
+        }
+        if (bestMatch == null || maxOccurrences == 0) {
+            throw new BestResultNotFound(searchTerm);  // Throw если не найден (max=0)
+        }
+        return bestMatch;
+    }
+
+    // Вспомогательный метод: подсчёт вхождений подстроки (из подсказки)
+    private int countOccurrences(String text, String sub) {
+        if (sub.isBlank()) {
+            return 0;
+        }
+        int count = 0;
+        int index = 0;
+        while ((index = text.indexOf(sub, index)) != -1) {
+            count++;
+            index += sub.length();
+        }
+        return count;
+    }
+
+    // Геттер для размера (из предыдущих тестов)
     public int getCurrentSize() {
         return currentSize;
     }

@@ -4,7 +4,10 @@ public class SimpleProduct extends Product {
     private final int price;
 
     public SimpleProduct(String name, int price) {
-        super(name);
+        super(name);  // Проверка name в родителе
+        if (price <= 0) {
+            throw new IllegalArgumentException("Цена продукта должна быть строго больше 0");
+        }
         this.price = price;
     }
 
@@ -23,10 +26,9 @@ public class SimpleProduct extends Product {
         return getName() + ": " + getPrice();
     }
 
-    // Добавлено: для совместимости с Searchable (если IDE жалуется; иначе опционально)
     @Override
     public String getName() {
         return super.getName();
     }
-    // getSearchTerm(), getContentType() и getStringRepresentation() — от Product, не трогаем
 }
+

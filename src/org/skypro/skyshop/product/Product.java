@@ -7,11 +7,18 @@ import org.skypro.skyshop.search.Searchable;
 public abstract class Product implements Searchable {
     private final String name;
 
+    // Конструктор с проверкой
     public Product(String name) {
-        this.name = name;
+        if (name == null) {
+            throw new IllegalArgumentException("Название продукта не может быть null");
+        }
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Название продукта не может быть пустой строкой или состоять только из пробелов");
+        }
+        this.name = name.trim();  // Опционально: убираем лишние пробелы
     }
 
-    @Override  // Теперь это реализует getName() из Searchable (конфликт снят!)
+    @Override
     public String getName() {
         return name;
     }
@@ -22,14 +29,11 @@ public abstract class Product implements Searchable {
 
     @Override
     public String getSearchTerm() {
-        return getName();  // Поиск по имени товара
+        return getName();
     }
 
     @Override
     public String getContentType() {
         return "PRODUCT";
     }
-
-    // getStringRepresentation() — default из интерфейса, не переопределяем
 }
-

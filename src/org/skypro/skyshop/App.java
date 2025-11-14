@@ -8,10 +8,27 @@ import org.skypro.skyshop.basket.ProductBasket;
 import org.skypro.skyshop.article.Article;
 import org.skypro.skyshop.search.Searchable;
 import org.skypro.skyshop.search.SearchEngine;
+import org.skypro.skyshop.search.BestResultNotFound;  // Для исключения (шаг 4)
 
-import java.util.Arrays;  // Для Arrays.toString()
+import java.util.Arrays;  // Для Arrays.toString() в search()
 
 public class App {
+    // Вспомогательный метод для теста в main(): подсчёт вхождений подстроки (как в SearchEngine, но static для App)
+    private static int countOccurrencesForTest(String text, String sub) {
+        if (sub == null || sub.trim().isEmpty()) {  // Совместимо с Java 8+
+            return 0;
+        }
+        String lowerText = text.toLowerCase();
+        String lowerSub = sub.toLowerCase();
+        int count = 0;
+        int index = 0;
+        while ((index = lowerText.indexOf(lowerSub, index)) != -1) {
+            count++;
+            index += lowerSub.length();
+        }
+        return count;
+    }
+
     public static void main(String[] args) {
         // === Часть 1: Демонстрация корзины (из предыдущих шагов 1-6) ===
         System.out.println("=== Демонстрация работы корзины (шаги 1-6) ===");
@@ -46,8 +63,7 @@ public class App {
         // 4. Стоимость и поиск
         System.out.println("\n4. Общая стоимость: " + basket.getTotalPrice());  // 127000
         System.out.println("5. Есть смартфон? " + basket.isProductInBasket("Смартфон"));  // true
-        System.out.println("6. Есть доп. товар? " + basket.isProductInBasket("Доп. товар"));  // false
-
+        System.out.println("6. Есть доп. товар? " + basket.isProductInBasket("Доп.товар"));  // false
         // 7. Очистка и тест пустой
         System.out.println("\n7. Очистка корзины:");
         basket.clearBasket();
@@ -55,19 +71,23 @@ public class App {
         basket.printBasket();  // "в корзине пусто"
         System.out.println("9. Стоимость пустой: " + basket.getTotalPrice());  // 0
         System.out.println("10. Поиск в пустой: " + basket.isProductInBasket("Мышь"));  // false
+
+        System.out.println("\n=== Корзина протестирована! ===");
+
+        // === Часть 2: Тест Article (шаг 1 нового модуля) ===
         System.out.println("\n=== Тест Article (шаг 1) ===");
-        Article article1 = new Article("Смартфон: Обзор", "Это крутой гаджет с камерой 108 МП и процессором Snapdragon.");
+        Article articleTest = new Article("Смартфон: Обзор", "Это крутой гаджет с камерой 108 МП и процессором Snapdragon.");
         System.out.println("Article toString():");
-        System.out.println(article1.toString());  // "Смартфон: Обзор\nЭто крутой гаджет..."
-        System.out.println("Article title: " + article1.getTitle());  // "Смартфон: Обзор"
-        System.out.println("Article text: " + article1.getText());  // "Это крутой гаджет..."
+        System.out.println(articleTest.toString());  // "Смартфон: Обзор\nЭто крутой гаджет..."
+        System.out.println("Article title: " + articleTest.getTitle());  // "Смартфон: Обзор"
+        System.out.println("Article text: " + articleTest.getText());  // "Это крутой гаджет..."
 
         // === Часть 3: Тест Searchable для Article (шаг 2 нового модуля) ===
         System.out.println("\n=== Тест Searchable для Article ===");
-        System.out.println("Article search term: " + article1.getSearchTerm());  // "Смартфон: Обзор\nЭто крутой..."
-        System.out.println("Article content type: " + article1.getContentType());  // "ARTICLE"
-        System.out.println("Article name: " + article1.getName());  // "Смартфон: Обзор"
-        System.out.println("Article representation: " + article1.getStringRepresentation());  // "Смартфон: Обзор — ARTICLE"
+        System.out.println("Article search term: " + articleTest.getSearchTerm());  // "Смартфон: Обзор\nЭто крутой..."
+        System.out.println("Article content type: " + articleTest.getContentType());  // "ARTICLE"
+        System.out.println("Article name: " + articleTest.getName());  // "Смартфон: Обзор"
+        System.out.println("Article representation: " + articleTest.getStringRepresentation());  // "Смартфон: Обзор — ARTICLE"
 
         // === Часть 4: Тест Searchable для наследников Product (Simple, Discounted, Fix) ===
         System.out.println("\n=== Тест Searchable для наследников Product ===");
@@ -101,109 +121,167 @@ public class App {
 
         // Полиморфный тест: все как Searchable
         System.out.println("\n--- Полиморфизм: Общий тест Searchable ---");
-        Searchable[] searchables = {simple, disc, fix, article1};  // Массив разных типов
+        Searchable[] searchables = {simple, disc, fix, articleTest};  // Массив разных типов
         for (Searchable s : searchables) {
             System.out.println(s.getStringRepresentation() + " | Search term length: " + s.getSearchTerm().length());
         }
 
-        System.out.println("\n=== Все тесты Searchable завершены! ===");
+        // === Часть 5: Тест SearchEngine (шаг 3+4: + findMostRelevant с throw BestResultNotFound) ===
+        System.out.println("\n=== Тест SearchEngine (шаг 4: + исключение BestResultNotFound) ===");
+        SearchEngine engine = new SearchEngine(20);  // Один engine, размер 20
 
-        // === Часть 5: Тест SearchEngine (шаг 4: один engine, все товары + статьи, несколько search()) ===
-        System.out.println("\n=== Тест SearchEngine (шаг 4: тестирование изменений) ===");
-        SearchEngine engine = new SearchEngine(20);  // Один engine, размер 20 (хватит на все)
+        // Добавляем товары (полиморфно, с 1 вхождением для теста)
+        SimpleProduct mousePart5 = new SimpleProduct("Мышь для офиса", 2000);  // "мышь" 1 раз
+        DiscountedProduct phonePart5 = new DiscountedProduct("Смартфон", 50000, 20);  // "смартфон" 1 раз
+        FixPriceProduct bookPart5 = new FixPriceProduct("Книга по Java");  // "книга" 1 раз
+        SimpleProduct keyboardPart5 = new SimpleProduct("Клавиатура", 3000);  // 0 для "книга"/"смартфон"
+        SimpleProduct noMatchProduct = new SimpleProduct("Другой товар без совпадений", 1000);  // 0 вхождений
 
-        // Добавляем ВСЕ товары из предыдущих тестов (корзина + наследники)
-        engine.add(mouse);  // "Мышь"
-        engine.add(phone);  // "Смартфон"
-        engine.add(book);  // "Книга"
-        engine.add(keyboard);  // "Клавиатура"
-        engine.add(laptop);  // "Ноутбук"
-        engine.add(extra);  // "Доп. товар" (даже если не в корзину)
-        engine.add(simple);  // "Simple Товар"
-        engine.add(disc);  // "Discounted Товар"
-        engine.add(fix);  // "Fix Товар"
-        // Теперь + extra для разнообразия (не из тестов, но OK)
-        engine.add(new SimpleProduct("Компьютер", 80000));  // "Компьютер"
+        engine.add(mousePart5);
+        engine.add(phonePart5);
+        engine.add(bookPart5);
+        engine.add(keyboardPart5);
+        engine.add(noMatchProduct);
 
-        // Добавляем несколько Article (существующая + новые)
-        engine.add(article1);  // "Смартфон: Обзор" (с текстом про гаджет)
-        Article article2 = new Article("Книга по Java", "Руководство для начинающих, включая корзины и поиск.");
-        engine.add(article2);  // "Книга по Java\nРуководство..."
-        Article article3 = new Article("Обзор ноутбуков", "Ноутбуки с скидкой — идеальный выбор.");
-        engine.add(article3);  // "Обзор ноутбуков\nНоутбуки с скидкой..."
-        Article article4 = new Article("Товары для офиса", "Мышь и клавиатура — must-have для работы.");
-        engine.add(article4);  // "Товары для офиса\nМышь и клавиатура..."
+        // Добавляем статьи с повторениями (2+ вхождений для демонстрации max)
+        Article article1 = new Article("Обзор книг по Java", "Книга по Java — отличный выбор. Ещё одна книга по Java идеальна для новичков в программировании.");  // "книга" 3 раза
+        engine.add(article1);
+        Article article2 = new Article("Смартфон: Полный обзор", "Смартфон с отличной камерой и процессором. Этот смартфон подойдёт для игр и фото.");  // "смартфон" 3 раза
+        engine.add(article2);
+        Article article3 = new Article("Товары без совпадений", "Это статья о товарах, но без 'книги' или 'смартфона'.");  // 0 вхождений
+        engine.add(article3);
 
-        System.out.println("Добавлено элементов: " + engine.getCurrentSize());  // 15 (11 товаров + 4 статьи)
+        System.out.println("Добавлено элементов: " + engine.getCurrentSize());  // 8
 
-        // Демонстрация search() несколько раз с разными строками
-        // 1. Поиск "смартфон" — найдёт phone (PRODUCT), article1 (ARTICLE)
-        Searchable[] results1 = engine.search("смартфон");
-        System.out.println("\n--- Поиск 'смартфон' (ожидаемо 2 результата): ---");
-        System.out.println("Массив результатов (Arrays.toString): " + Arrays.toString(results1));  // [PRODUCT, ARTICLE, null, null, null]
-        int count1 = 0;
-        for (int i = 0; i < results1.length; i++) {
-            if (results1[i] != null) {
-                count1++;
-                System.out.println(count1 + ". " + results1[i].getStringRepresentation() + " | Term preview: " + results1[i].getSearchTerm().substring(0, Math.min(20, results1[i].getSearchTerm().length())) + "...");
-            } else {
-                System.out.println((i + 1) + ". null");
-            }
+        // Тест search() (кратко: первые 5 с contains, для контекста)
+        Searchable[] resultsBook = engine.search("книга");
+        System.out.println("\n--- Поиск 'книга' (Arrays.toString, contains): " + Arrays.toString(resultsBook));  // [book, article1, null...]
+
+        Searchable[] resultsPhone = engine.search("смартфон");
+        System.out.println("\n--- Поиск 'смартфон' (Arrays.toString): " + Arrays.toString(resultsPhone));  // [phone, article2, null...]
+
+        // Тест findMostRelevant (несколько: с max>0 — return, с max=0 — throw + catch)
+        System.out.println("\n--- Тест findMostRelevant (max вхождений + исключение) ---");
+
+        // 1. "книга": article1 (3 > book 1) — return ARTICLE, без throw
+        Searchable bestBook = null;
+        try {
+            bestBook = engine.findMostRelevant("книга");
+            int occBook = countOccurrencesForTest(bestBook.getSearchTerm(), "книга");
+            System.out.println("Лучший для 'книга' (" + occBook + " вхожд.): " + bestBook.getStringRepresentation());
+        } catch (BestResultNotFound searchExcBook) {  // Уникальное имя
+            System.out.println("Поймано BestResultNotFound: " + searchExcBook.getMessage());  // Не сработает (найдено)
         }
 
-        // 2. Поиск "книга" — найдёт book (PRODUCT), article2 (ARTICLE)
-        Searchable[] results2 = engine.search("книга");
-        System.out.println("\n--- Поиск 'книга' (ожидаемо 2 результата): ---");
-        System.out.println("Массив результатов (Arrays.toString): " + Arrays.toString(results2));
-        int count2 = 0;
-        for (int i = 0; i < results2.length; i++) {
-            if (results2[i] != null) {
-                count2++;
-                System.out.println(count2 + ". " + results2[i].getStringRepresentation() + " | Term preview: " + results2[i].getSearchTerm().substring(0, Math.min(20, results2[i].getSearchTerm().length())) + "...");
-            } else {
-                System.out.println((i + 1) + ". null");
+        // 2. "смартфон": article2 (3 > phone 1) — return ARTICLE
+        Searchable bestPhone = null;
+        try {
+            bestPhone = engine.findMostRelevant("смартфон");
+            int occPhone = countOccurrencesForTest(bestPhone.getSearchTerm(), "смартфон");
+            System.out.println("Лучший для 'смартфон' (" + occPhone + " вхожд.): " + bestPhone.getStringRepresentation());
+        } catch (BestResultNotFound searchExcPhone) {  // Уникальное имя
+            System.out.println("Поймано BestResultNotFound: " + searchExcPhone.getMessage());  // Не сработает
+            // 3."мышь": mouse (1) — return PRODUCT
+            Searchable bestMouse = null;
+            try {
+                bestMouse = engine.findMostRelevant("мышь");
+                int occMouse = countOccurrencesForTest(bestMouse.getSearchTerm(), "мышь");
+                System.out.println("Лучший для 'мышь' (" + occMouse + " вхожд.): " + bestMouse.getStringRepresentation());
+            } catch (BestResultNotFound searchExcMouse) {  // Уникальное имя
+                System.out.println("Поймано BestResultNotFound: " + searchExcMouse.getMessage());  // Не сработает
             }
-        }
 
-        // 3. Поиск "товар" — найдёт extra, simple, disc, fix (все PRODUCT, первые 4 + null)
-        Searchable[] results3 = engine.search("товар");
-        System.out.println("\n--- Поиск 'товар' (ожидаемо 4+ результата, первые 5 с break): ---");
-        System.out.println("Массив результатов (Arrays.toString): " + Arrays.toString(results3));
-        int count3 = 0;
-        for (int i = 0; i < results3.length; i++) {
-            if (results3[i] != null) {
-                count3++;
-                System.out.println(count3 + ". " + results3[i].getStringRepresentation() + " | Term preview: " + results3[i].getSearchTerm().substring(0, Math.min(20, results3[i].getSearchTerm().length())) + "...");
-                if (count3 == 5) break;  // Симуляция break в выводе
-            } else {
-                System.out.println((i + 1) + ".null");
-                // 4. Поиск "гаджет" — найдёт article1 (ARTICLE, 1 результат)
-                Searchable[] results4 = engine.search("гаджет");
-                System.out.println("\n--- Поиск 'гаджет' (1 результат): ---");
-                System.out.println("Массив результатов (Arrays.toString): " + Arrays.toString(results4));
-                int count4 = 0;
-                for (Searchable r : results4) {
-                    if (r != null) {
-                        count4++;
-                        System.out.println(count4 + ". " + r.getStringRepresentation());
-                    }
+            // 4. "экзотика" (max=0) — throw BestResultNotFound
+            try {
+                Searchable bestNone = engine.findMostRelevant("экзотика");
+                // Не дойдёт
+            } catch (BestResultNotFound bnfExcNone) {  // Уникальное имя
+                System.out.println("Поймано BestResultNotFound: " + bnfExcNone.getMessage());  // "Не найден... для запроса 'экзотика'"
+            }
+
+            // 5. Пустой запрос — throw BestResultNotFound (blank)
+            try {
+                Searchable bestEmpty = engine.findMostRelevant("");
+                // Не дойдёт
+            } catch (BestResultNotFound bnfExcEmpty) {  // Уникальное имя
+                System.out.println("Поймано BestResultNotFound: " + bnfExcEmpty.getMessage());  // "Не найден... для запроса ''"
+            }
+
+            System.out.println("\n=== SearchEngine с BestResultNotFound протестирован! (Throw для max=0/blank, полиморфно) ===");
+
+            // === Часть 6: Демонстрация проверки данных (шаг 2: нарочно неверные + try-catch) ===
+            System.out.println("\n=== Демонстрация проверки данных (шаг 2) ===");
+
+            // 1. Нарочно неверный SimpleProduct: null name
+            System.out.println("\n--- 1. SimpleProduct с null name ---");
+            try {
+                SimpleProduct invalid1 = new SimpleProduct(null, 1000);
+            } catch (IllegalArgumentException e1) {  // Уникальное имя
+                System.out.println("Поймано исключение: " + e1.getMessage());  // "Название продукта не может быть null"
+            }
+
+            // 2. Нарочно неверный SimpleProduct: blank name (пробелы)
+            System.out.println("\n--- 2. SimpleProduct с blank name ---");
+            try {
+                SimpleProduct invalid2 = new SimpleProduct("   ", 500);
+            } catch (IllegalArgumentException e2) {  // Уникальное имя
+                System.out.println("Поймано исключение: " + e2.getMessage());  // "Название... пробелов"
+            }
+
+            // 3. Нарочно неверный SimpleProduct: price <=0
+            System.out.println("\n--- 3. SimpleProduct с price=0 ---");
+            try {
+                SimpleProduct invalid3 = new SimpleProduct("Товар", 0);
+            } catch (IllegalArgumentException e3) {  // Уникальное имя
+                System.out.println("Поймано исключение: " + e3.getMessage());  // "Цена... >0"
+            }
+
+            // 4. Нарочно неверный DiscountedProduct: basePrice <=0
+            System.out.println("\n--- 4. DiscountedProduct с basePrice=0 ---");
+            try {
+                DiscountedProduct invalid4 = new DiscountedProduct("Скидочный Товар", 0, 10);
+            } catch (IllegalArgumentException e4) {  // Уникальное имя
+                System.out.println("Поймано исключение: " + e4.getMessage());  // "Базовая цена... >0"
+            }
+
+            // 5. Нарочно неверный DiscountedProduct: discount <0
+            System.out.println("\n--- 5. DiscountedProduct с discount=-5 ---");
+            try {
+                DiscountedProduct invalid5 = new DiscountedProduct("Скидка Отрицательная", 1000, -5);
+            } catch (IllegalArgumentException e5) {  // Уникальное имя
+                System.out.println("Поймано исключение: " + e5.getMessage());  // "Процент... 0-100"
+            }
+
+            // 6. Нарочно неверный DiscountedProduct: discount >100
+            System.out.println("\n--- 6. DiscountedProduct с discount=150 ---");
+            try {
+                DiscountedProduct invalid6 = new DiscountedProduct("Скидка Сверх", 1000, 150);
+            } catch (IllegalArgumentException e6) {  // Уникальное имя
+                System.out.println("Поймано исключение: " + e6.getMessage());  // "Процент... 0-100"
+                // 7. Нарочно неверный FixPriceProduct: blank name
+                System.out.println("\n--- 7. FixPriceProduct с blank name ---");
+                try {
+                    FixPriceProduct invalid7 = new FixPriceProduct("");
+                } catch (IllegalArgumentException e7) {  // Уникальное имя
+                    System.out.println("Поймано исключение: " + e7.getMessage());  // "Название... пустой"
                 }
-                System.out.println("Найдено: " + count4);
 
-                // 5. Пустой поиск — пустой массив
-                Searchable[] emptyResults = engine.search("");
-                System.out.println("\n--- Пустой поиск '': ---");
-                System.out.println("Массив результатов (Arrays.toString): " + Arrays.toString(emptyResults));  // []
-                System.out.println("Длина: " + emptyResults.length);  // 0
+                // 8. Для контраста: один валидный (чтобы показать, что нормальные работают)
+                System.out.println("\n--- 8. Валидный SimpleProduct (для сравнения) ---");
+                try {
+                    SimpleProduct valid = new SimpleProduct("Валидный Товар", 1500);
+                    System.out.println("✓ Успешно создан: " + valid.toString());  // "Валидный Товар: 1500"
+                } catch (IllegalArgumentException e8) {  // Уникальное имя
+                    System.out.println("Поймано исключение: " + e8.getMessage());  // Не должно сработать
+                }
 
-                System.out.println("\n=== SearchEngine протестирован! (Полиморфизм: PRODUCT и ARTICLE в результатах) ===");
-                System.out.println("\n=== Все тесты завершены! Модуль поиска готов. ===");
+                System.out.println("\n=== Демонстрация завершена! (Неверные ловятся в catch с выводом сообщений) ===");
+                System.out.println("\n=== Все тесты завершены! ===");
             }
         }
-
-
     }
-        }
+}
+
 
 
 
