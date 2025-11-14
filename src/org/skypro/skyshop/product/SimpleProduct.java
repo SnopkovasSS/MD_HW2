@@ -4,7 +4,10 @@ public class SimpleProduct extends Product {
     private final int price;
 
     public SimpleProduct(String name, int price) {
-        super(name);
+        super(name);  // Проверка name в родителе
+        if (price <= 0) {
+            throw new IllegalArgumentException("Цена продукта должна быть строго больше 0");
+        }
         this.price = price;
     }
 
@@ -15,11 +18,17 @@ public class SimpleProduct extends Product {
 
     @Override
     public boolean isSpecial() {
-        return false;  // Обычный товар — не специальный
+        return false;
     }
 
     @Override
     public String toString() {
-        return getName() + ": " + getPrice();  // Формат: имя: стоимость
+        return getName() + ": " + getPrice();
+    }
+
+    @Override
+    public String getName() {
+        return super.getName();
     }
 }
+
