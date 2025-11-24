@@ -2,38 +2,78 @@ package org.skypro.skyshop.product;
 
 
 
-import org.skypro.skyshop.search.Searchable;
+import org.skypro.skyshop.product.Product;
 
-public abstract class Product implements Searchable {
-    private final String name;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-    // Конструктор с проверкой
-    public Product(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("Название продукта не может быть null");
+public class ProductBasket {
+    private List<Product> products = new ArrayList<>();
+
+    public void addProduct(Product product) {
+        if (product != null) {
+            products.add(product);
         }
-        if (name.isBlank()) {
-            throw new IllegalArgumentException("Название продукта не может быть пустой строкой или состоять только из пробелов");
+    }
+
+    // Новый метод: удаление всех продуктов по имени (шаг 2)
+    public List<Product> removeProductsByName(String name) {
+        List<Product> removed = new ArrayList<>();
+        if (name == null || name.trim().isEmpty()) {
+            return removed;
         }
-        this.name = name.trim();  // Опционально: убираем лишние пробелы
+        String searchName = name.trim();
+        Iterator<Product> iterator = products.iterator();
+        while (iterator.hasNext()) {
+            Product p = iterator.next();
+            if (p.getName().trim().equalsIgnoreCase(searchName)) {  // Trim для безопасности
+                removed.add(p);
+                iterator.remove();
+            }
+        }
+        return removed;
     }
 
-    @Override
-    public String getName() {
-        return name;
+    public void clearBasket() {
+        products.clear();
     }
 
-    public abstract int getPrice();
-
-    public abstract boolean isSpecial();
-
-    @Override
-    public String getSearchTerm() {
-        return getName();
+    public void printBasket() {
+        if (products.isEmpty()) {
+            System.out.println("В корзине пусто");
+            return;
+        }
+        double total = 0.0;
+        int specialsCount = 0;
+        for (Product p : products) {
+            System.out.println(p.toString());
+            total += p.getPrice();
+            if (p.isSpecial()) {
+                specialsCount++;
+            }
+        }
+        System.out.println("Итого: " + (int) total);
+        System.out.println("Специальных товаров: " + specialsCount);
     }
 
-    @Override
-    public String getContentType() {
-        return "PRODUCT";
+    public double getTotalPrice() {
+        double sum = 0.0;
+        for (Product p : products) {
+            sum += p.getPrice();
+        }
+        return sum;
+    }
+
+    public boolean isProductInBasket(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return false;
+        }
+        for (Product p : products) {
+            if (p.getName().trim().equalsIgnoreCase(name.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
