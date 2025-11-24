@@ -1,69 +1,97 @@
 package org.skypro.skyshop.basket;
 
 import org.skypro.skyshop.product.Product;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class ProductBasket {
-    private Product[] products = new Product[5];  // Массив на 5 слотов, private — нет прямого доступа
-    private int productCount = 0;  // Счётчик заполненных слотов (для удобства)
+    private List<Product> products = new ArrayList<>();  // Динамический список (без лимита)
 
-    // Добавление продукта (void, ничего не возвращает)
+    //Добавляет продукт в корзину (если не null).
+    //Выводит "Продукт добавлен!" для демонстрации.
+
     public void addProduct(Product product) {
-        if (productCount < 5) {
-            products[productCount] = product;
-            productCount++;
-            System.out.println("Продукт добавлен!");  // Опционально, для обратной связи
-        } else {
-            System.out.println("Невозможно добавить продукт");  // Если места нет
+        if (product != null) {
+            products.add(product);
+            System.out.println("Продукт добавлен!");  // Для теста в main
         }
     }
 
-    // Общая стоимость (int, ничего не принимает)
-    public int getTotalPrice() {
-        int total = 0;
-        for (int i = 0; i < productCount; i++) {
-            if (products[i] != null) {
-                total += products[i].getPrice();
+    //Выводит содержимое корзины: toString() каждого продукта,
+     //стоимость, количество специальных (isSpecial()).
+    //Для пустой: "в корзине пусто".
+
+    public void printBasket() {
+        if (products.isEmpty()) {
+            System.out.println("в корзине пусто");
+            return;
+        }
+        for (Product p : products) {
+            System.out.println(p.toString());  // Полиморфно: toString() наследника
+        }
+        double total = getTotalPrice();
+        System.out.println("Итого: " + total);
+        int specialCount = 0;
+        for (Product p : products) {
+            if (p.isSpecial()) {
+                specialCount++;
             }
+        }
+        System.out.println("Специальных товаров: " + specialCount);
+    }
+
+    //Возвращает общую стоимость всех продуктов (сумма getPrice()).
+    //Для пустой: 0.
+
+    public double getTotalPrice() {
+        double total = 0.0;
+        for (Product p : products) {
+            total += p.getPrice();
         }
         return total;
     }
 
-    // Печать содержимого (void) — обновлённый для шага 5
-    public void printBasket() {
-        if (productCount == 0) {
-            System.out.println("в корзине пусто");
-            return;
-        }
+    //Проверяет наличие продукта по точному имени (getName().equals(name)).
+    //Игнорирует регистр? Нет (по задаче equals, case-sensitive).
+    //Для пустой: false.
 
-        int specialCount = 0;  // Счётчик специальных товаров (скидка + фикс)
-        for (int i = 0; i < productCount; i++) {
-            if (products[i] != null) {
-                System.out.println(products[i].toString());  // Полиморфный вывод по формату toString()
-                if (products[i].isSpecial()) {  // Проверяем через метод (без instanceof)
-                    specialCount++;
-                }
-            }
-        }
-        System.out.println("Итого: " + getTotalPrice());
-        System.out.println("Специальных товаров: " + specialCount);
-    }
-
-    // Проверка по имени (boolean)
     public boolean isProductInBasket(String name) {
-        for (int i = 0; i < productCount; i++) {
-            if (products[i] != null && products[i].getName().equals(name)) {
+        if (name == null || name.trim().isEmpty()) {
+            return false;
+        }
+        for (Product p : products) {
+            if (name.equals(p.getName())) {  // Точное совпадение
                 return true;
             }
         }
         return false;
     }
 
-    // Очистка (void) — проставляем null
+    //Очищает корзину.
+    //Выводит "Корзина очищена!" для теста.
+
     public void clearBasket() {
-        for (int i = 0; i < 5; i++) {
-            products[i] = null;
+        products.clear();
+        System.out.println("Корзина очищена!");  // Для теста в main
+    }
+
+    //Удаляет все продукты с заданным именем (итератор для безопасного удаления).
+    //Возвращает List удалённых продуктов (пустой, если ничего нет).
+
+    public List<Product> removeProductsByName(String name) {
+        List<Product> removed = new ArrayList<>();
+        if (name == null || name.trim().isEmpty()) {
+            return removed;  // Пустой для invalid name
         }
-        productCount = 0;
-        System.out.println("Корзина очищена!");  // Опционально
+        Iterator<Product> iterator = products.iterator();
+        while (iterator.hasNext()) {
+            Product p = iterator.next();
+            if (p != null && name.equals(p.getName())) {  // Точное совпадение
+                removed.add(p);
+                iterator.remove();  // Безопасное удаление
+            }
+        }
+        return removed;
     }
 }
