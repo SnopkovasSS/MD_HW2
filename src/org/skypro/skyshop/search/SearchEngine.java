@@ -1,72 +1,81 @@
 package org.skypro.skyshop.search;
 
-import org.skypro.skyshop.article.Article;
-import org.skypro.skyshop.product.SimpleProduct;
-import org.skypro.skyshop.product.DiscountedProduct;
-import org.skypro.skyshop.product.FixPriceProduct;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class SearchEngine {
-    private Searchable[] items;
-    private int currentSize;
+    private List<Searchable> items;  // Новая структура: динамический список (вместо массива)
+    private int maxSize;  // Лимит для add() (из конструктора; если =0 — безлимит)
 
-    public SearchEngine(int capacity) {
-        this.items = new Searchable[capacity];
-        this.currentSize = 0;
+    //Конструктор: инициализирует список и лимит.
+    //@param maxSize максимальный размер (0 = безлимит)
+
+    public SearchEngine(int maxSize) {
+        this.items = new ArrayList<>();
+        this.maxSize = maxSize;
     }
+
+    //Добавляет элемент в список (если < maxSize и не null).
 
     public void add(Searchable item) {
-        if (item != null && currentSize < items.length) {
-            items[currentSize++] = item;
+        if (item != null && (maxSize == 0 || items.size() < maxSize)) {
+            items.add(item);
         }
     }
 
-    public Searchable[] search(String searchTerm) {
-        if (searchTerm == null || searchTerm.isBlank()) {
-            return new Searchable[0];
+    //Возвращает текущий размер списка.
+    public int getCurrentSize() {
+        return items.size();
+    }
+
+    //Ищет ВСЕ элементы, где getSearchTerm() содержит query (case-insensitive).
+    //@return List всех подходящих (пустой, если ничего нет или query blank/null)
+
+    public List<Searchable> search(String query) {
+        List<Searchable> results = new ArrayList<>();
+        if (query == null || query.trim().isEmpty()) {
+            return results;  // Пустой для blank
         }
-        searchTerm = searchTerm.toLowerCase();
-        Searchable[] results = new Searchable[5];
-        int resultCount = 0;
-        for (int i = 0; i < currentSize; i++) {
-            if (resultCount >= 5) {
-                break;
-            }
-            String term = items[i].getSearchTerm().toLowerCase();
-            if (term.contains(searchTerm)) {
-                results[resultCount++] = items[i];
+        String lowerQuery = query.toLowerCase();
+        for (Searchable s : items) {
+            if (s != null && s.getSearchTerm().toLowerCase().contains(lowerQuery)) {
+                results.add(s);  // Добавляем ВСЕ релевантные (без лимита 5)
             }
         }
         return results;
     }
 
-    // Обновлённый метод: поиск наиболее подходящего (шаг 3+4: + throw BestResultNotFound если не найден)
-    public Searchable findMostRelevant(String searchTerm) throws BestResultNotFound {
-        if (searchTerm == null || searchTerm.isBlank()) {
-            throw new BestResultNotFound(searchTerm);  // Throw для пустого запроса
+    //Находит элемент с максимальным кол-вом вхождений query в getSearchTerm().
+    //Если max=0 или query blank — throw BestResultNotFound.
+     //* @return Searchable с max вхождениями (любой, если несколько с max)
+     //* @throws BestResultNotFound если ничего не найдено
+
+    public Searchable findMostRelevant(String query) throws BestResultNotFound {
+        if (query == null || query.trim().isEmpty()) {
+            throw new BestResultNotFound("Не найден ни один результат для запроса '" + query + "'");
         }
-        searchTerm = searchTerm.toLowerCase();  // Case-insensitive
+        String lowerQuery = query.toLowerCase();
+        Searchable best = null;
         int maxOccurrences = -1;
-        Searchable bestMatch = null;
-        for (int i = 0; i < currentSize; i++) {
-            if (items[i] != null) {
-                String term = items[i].getSearchTerm().toLowerCase();
-                int occurrences = countOccurrences(term, searchTerm);
+        for (Searchable s : items) {  // Итерация по List (вместо массива)
+            if (s != null) {
+                int occurrences = countOccurrences(s.getSearchTerm().toLowerCase(), lowerQuery);
                 if (occurrences > maxOccurrences) {
-                    maxOccurrences =occurrences;
-                    bestMatch = items[i];
+                    maxOccurrences = occurrences;
+                    best = s;
                 }
-                // Если == max, то первый (не меняем)
             }
         }
-        if (bestMatch == null || maxOccurrences == 0) {
-            throw new BestResultNotFound(searchTerm);  // Throw если не найден (max=0)
+        if (best == null || maxOccurrences == 0) {
+            throw new BestResultNotFound("Не найден ни один результат для запроса '" + query + "'");
         }
-        return bestMatch;
+        return best;
     }
 
-    // Вспомогательный метод: подсчёт вхождений подстроки (из подсказки)
+    // Вспомогательный метод: подсчёт вхождений (non-overlapping, как раньше)
     private int countOccurrences(String text, String sub) {
-        if (sub.isBlank()) {
+        if (sub == null || sub.isEmpty()) {
             return 0;
         }
         int count = 0;
@@ -76,10 +85,5 @@ public class SearchEngine {
             index += sub.length();
         }
         return count;
-    }
-
-    // Геттер для размера (из предыдущих тестов)
-    public int getCurrentSize() {
-        return currentSize;
     }
 }
