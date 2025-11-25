@@ -1,97 +1,126 @@
 package org.skypro.skyshop.basket;
 
 import org.skypro.skyshop.product.Product;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class ProductBasket {
-    private List<Product> products = new ArrayList<>();  // Динамический список (без лимита)
+    private Map<String, List<Product>> productMap;  // Новая структура: Map<имя, List<Product>> для дубликатов
 
-    //Добавляет продукт в корзину (если не null).
-    //Выводит "Продукт добавлен!" для демонстрации.
+    //Конструктор: инициализирует пустую Map.
+
+    public ProductBasket() {
+        this.productMap = new HashMap<>();
+    }
+
+    //Добавляет продукт в Map: по ключу getName() — в список (создаёт, если нет).
+    //Null не добавляет. Выводит "Продукт добавлен!".
 
     public void addProduct(Product product) {
         if (product != null) {
-            products.add(product);
-            System.out.println("Продукт добавлен!");  // Для теста в main
+            String name = product.getName();
+            if (name != null && !name.trim().isEmpty()) {  // Проверка на valid name (как в конструкторах)
+                productMap.computeIfAbsent(name, k -> new ArrayList<>()).add(product);
+                System.out.println("Продукт добавлен!");  // Для демонстрации (как раньше)
+            }
         }
     }
 
-    //Выводит содержимое корзины: toString() каждого продукта,
-     //стоимость, количество специальных (isSpecial()).
-    //Для пустой: "в корзине пусто".
+    //Удаляет все продукты по имени (ключ). Возвращает List удалённых (или empty).
+    //Удаляет ключ из Map. Выводит "Список пуст", если ничего не удалено.
+
+    public List<Product> removeProductsByName(String name) {
+        List<Product> removed = new ArrayList<>();
+        if (name != null && !name.trim().isEmpty() && productMap.containsKey(name)) {
+            removed = new ArrayList<>(productMap.get(name));  // Копируем список
+            productMap.remove(name);  // Удаляем ключ
+        } else if (name != null && !name.trim().isEmpty()) {
+            System.out.println("Список пуст");  // По сценарию для несуществующего
+        }
+        return removed;
+    }
+
+    //Выводит содержимое корзины: вложенный перебор (все продукты по именам).
+    //Формат: имя: цена (спец. если isSpecial).
+    //Итого: сумма цен, кол-во специальных.
+    //пустая: "в корзине пусто".
 
     public void printBasket() {
-        if (products.isEmpty()) {
+        if (productMap.isEmpty()) {
             System.out.println("в корзине пусто");
             return;
         }
-        for (Product p : products) {
-            System.out.println(p.toString());  // Полиморфно: toString() наследника
-        }
-        double total = getTotalPrice();
-        System.out.println("Итого: " + total);
+        double total = 0.0;
         int specialCount = 0;
-        for (Product p : products) {
-            if (p.isSpecial()) {
-                specialCount++;
+        for (Map.Entry<String, List<Product>> entry : productMap.entrySet()) {
+            String name = entry.getKey();
+            List<Product> products = entry.getValue();
+            for (Product p : products) {
+                String special = p.isSpecial() ? " (спец.)" : "";
+                System.out.println(name + ": " + p.getPrice() + special);
+                total += p.getPrice();
+                if (p.isSpecial()) {
+                    specialCount++;
+                }
             }
         }
+        System.out.println("Итого: " + total);
         System.out.println("Специальных товаров: " + specialCount);
     }
 
-    //Возвращает общую стоимость всех продуктов (сумма getPrice()).
-    //Для пустой: 0.
+    //Общая стоимость: сумма цен всех продуктов (вложенный перебор).
 
     public double getTotalPrice() {
         double total = 0.0;
-        for (Product p : products) {
-            total += p.getPrice();
+        for (List<Product> products : productMap.values()) {
+            for (Product p : products) {
+                total += p.getPrice();
+            }
         }
         return total;
     }
 
-    //Проверяет наличие продукта по точному имени (getName().equals(name)).
-    //Игнорирует регистр? Нет (по задаче equals, case-sensitive).
-    //Для пустой: false.
+    //Проверяет наличие продукта по имени (ключ в Map).
 
     public boolean isProductInBasket(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            return false;
-        }
-        for (Product p : products) {
-            if (name.equals(p.getName())) {  // Точное совпадение
-                return true;
-            }
-        }
-        return false;
+        return name != null && !name.trim().isEmpty() && productMap.containsKey(name);
     }
 
-    //Очищает корзину.
-    //Выводит "Корзина очищена!" для теста.
+    //Очищает корзину: clear Map. Выводит "Корзина очищена!".
 
     public void clearBasket() {
-        products.clear();
-        System.out.println("Корзина очищена!");  // Для теста в main
+        productMap.clear();
+        System.out.println("Корзина очищена!");
     }
 
-    //Удаляет все продукты с заданным именем (итератор для безопасного удаления).
-    //Возвращает List удалённых продуктов (пустой, если ничего нет).
+    //Сортирует все продукты в корзине по возрастанию цены (глобально).
+    //Собирает все в временный List, сортирует, перестраивает Map (по именам, с сортировкой внутри списков по цене).
+    //Для пустой: ничего не делает. Выводит сообщение.
 
-    public List<Product> removeProductsByName(String name) {
-        List<Product> removed = new ArrayList<>();
-        if (name == null || name.trim().isEmpty()) {
-            return removed;  // Пустой для invalid name
+    public void sortByPrice() {
+        if (productMap.isEmpty()) {
+            return;
         }
-        Iterator<Product> iterator = products.iterator();
-        while (iterator.hasNext()) {
-            Product p = iterator.next();
-            if (p != null && name.equals(p.getName())) {  // Точное совпадение
-                removed.add(p);
-                iterator.remove();  // Безопасное удаление
-            }
+        // Собираем все продукты в один List для глобальной сортировки
+        List<Product> allProducts = new ArrayList<>();
+        for (List<Product> list : productMap.values()) {
+            allProducts.addAll(list);
         }
-        return removed;
+        // Сортируем по цене (возрастание)
+        allProducts.sort((p1, p2) -> Double.compare(p1.getPrice(), p2.getPrice()));
+        // Перестраиваем Map: по именам, добавляем отсортированные в списки
+        productMap.clear();
+        for (Product p : allProducts) {
+            String name = p.getName();
+            productMap.computeIfAbsent(name, k -> new ArrayList<>()).add(p);
+        }
+        // Сортируем внутри каждого списка (уже отсортировано глобально, но на всякий)
+        for (List<Product> list : productMap.values()) {
+            list.sort((p1, p2) -> Double.compare(p1.getPrice(), p2.getPrice()));
+        }
+        System.out.println("Корзина отсортирована по цене!");
     }
 }
+
+
+
+

@@ -1,55 +1,55 @@
 package org.skypro.skyshop.search;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+
+//Поисковый движок для объектов Searchable (Products и Articles).
+// Поддерживает добавление, поиск по Map (sorted по именам) и findMostRelevant.
 
 public class SearchEngine {
-    private List<Searchable> items;  // Новая структура: динамический список (вместо массива)
-    private int maxSize;  // Лимит для add() (из конструктора; если =0 — безлимит)
+    private List<Searchable> searchableList;  // Динамический список (без лимита для простоты)
+    private int maxCapacity;  // Для совместимости (не используется в add)
 
-    //Конструктор: инициализирует список и лимит.
-    //@param maxSize максимальный размер (0 = безлимит)
+    //Конструктор: инициализирует List и maxCapacity (0=безлимит).
 
-    public SearchEngine(int maxSize) {
-        this.items = new ArrayList<>();
-        this.maxSize = maxSize;
+    public SearchEngine(int maxCapacity) {
+        this.maxCapacity = maxCapacity >= 0 ? maxCapacity : 0;
+        this.searchableList = new ArrayList<>();
     }
 
-    //Добавляет элемент в список (если < maxSize и не null).
+    //Добавляет Searchable в List (полиморфно). Null не добавляет.
+    // Если maxCapacity>0 и полный — игнорирует (но здесь безлим).
 
-    public void add(Searchable item) {
-        if (item != null && (maxSize == 0 || items.size() < maxSize)) {
-            items.add(item);
+    public void add(Searchable searchable) {
+        if (searchable != null && (maxCapacity == 0 || searchableList.size() < maxCapacity)) {
+            searchableList.add(searchable);
         }
     }
 
-    //Возвращает текущий размер списка.
+    //Возвращает размер списка.
+
     public int getCurrentSize() {
-        return items.size();
+        return searchableList.size();
     }
 
-    //Ищет ВСЕ элементы, где getSearchTerm() содержит query (case-insensitive).
-    //@return List всех подходящих (пустой, если ничего нет или query blank/null)
+    //Поиск: возвращает TreeMap<String, Searchable> (отсортировано по именам).
+    //Только с >0 вхождений query (case-insensitive) в getSearchTerm().
+    //Пустой query или нет совпадений — empty TreeMap.
 
-    public List<Searchable> search(String query) {
-        List<Searchable> results = new ArrayList<>();
+    public Map<String, Searchable> search(String query) {
+        TreeMap<String, Searchable> results = new TreeMap<>();  // Сортированная Map
         if (query == null || query.trim().isEmpty()) {
-            return results;  // Пустой для blank
+            return results;  // Empty
         }
         String lowerQuery = query.toLowerCase();
-        for (Searchable s : items) {
-            if (s != null && s.getSearchTerm().toLowerCase().contains(lowerQuery)) {
-                results.add(s);  // Добавляем ВСЕ релевантные (без лимита 5)
+        for (Searchable s : searchableList) {
+            if (countOccurrences(s.getSearchTerm(), lowerQuery) > 0) {
+                results.put(s.getName(), s);  // Ключ: имя, значение: объект (дубли имена — последний)
             }
         }
         return results;
     }
 
-    //Находит элемент с максимальным кол-вом вхождений query в getSearchTerm().
-    //Если max=0 или query blank — throw BestResultNotFound.
-     //* @return Searchable с max вхождениями (любой, если несколько с max)
-     //* @throws BestResultNotFound если ничего не найдено
+    //Находит самый релевантный (max вхождений). Throw BestResultNotFound если 0.
 
     public Searchable findMostRelevant(String query) throws BestResultNotFound {
         if (query == null || query.trim().isEmpty()) {
@@ -57,14 +57,12 @@ public class SearchEngine {
         }
         String lowerQuery = query.toLowerCase();
         Searchable best = null;
-        int maxOccurrences = -1;
-        for (Searchable s : items) {  // Итерация по List (вместо массива)
-            if (s != null) {
-                int occurrences = countOccurrences(s.getSearchTerm().toLowerCase(), lowerQuery);
-                if (occurrences > maxOccurrences) {
-                    maxOccurrences = occurrences;
-                    best = s;
-                }
+        int maxOccurrences = 0;
+        for (Searchable s : searchableList) {
+            int occ = countOccurrences(s.getSearchTerm(), lowerQuery);
+            if (occ > maxOccurrences) {
+                maxOccurrences = occ;
+                best = s;
             }
         }
         if (best == null || maxOccurrences == 0) {
@@ -73,17 +71,23 @@ public class SearchEngine {
         return best;
     }
 
-    // Вспомогательный метод: подсчёт вхождений (non-overlapping, как раньше)
+    //Подсчёт вхождений sub в text (case-insensitive, без перекрытий).
+
     private int countOccurrences(String text, String sub) {
-        if (sub == null || sub.isEmpty()) {
-            return 0;
+        if (text == null || sub == null || sub.trim().isEmpty()) {
+
+
+
+                return 0;
+            }
+            String lowerText = text.toLowerCase();
+            String lowerSub = sub.toLowerCase();
+            int count = 0;
+            int index = 0;
+            while ((index = lowerText.indexOf(lowerSub, index)) != -1) {
+                count++;
+                index += lowerSub.length();
+            }
+            return count;
         }
-        int count = 0;
-        int index = 0;
-        while ((index = text.indexOf(sub, index)) != -1) {
-            count++;
-            index += sub.length();
-        }
-        return count;
     }
-}
