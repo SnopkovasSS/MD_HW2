@@ -1,55 +1,45 @@
 package org.skypro.skyshop.product;
 
-//Простой продукт без скидки. Наследует Product.
-public class SimpleProduct extends Product {
+import org.skypro.skyshop.search.Searchable;  // Только этот импорт
 
-    //Конструктор: устанавливает name и price.
-    //@param name Название продукта (не null/blank).
-    //@param price Цена (>0).
+//Простой продукт (implements Product + Searchable).
+
+public class SimpleProduct implements Product, Searchable {
+    private String name;
+    private double price;
 
     public SimpleProduct(String name, double price) {
-        super(name, price);  // Вызываем базовый конструктор (проверяет валидность)
+        this.name = name;
+        this.price = Math.max(0.0, price);
     }
-
-    //Переопределение: не специальный продукт (нет скидки).
-
-    @Override
-    public boolean isSpecial() {
-        return false;  // Обычный продукт
-    }
-
-    //Переопределение: простое строковое представление с ценой.
-
-    @Override
-    public String toString() {
-        return getName() + ": " + getPrice();
-    }
-
-    //Переопределение: search term (имя + цена).
-
-    @Override
-    public String getSearchTerm() {
-        return getName() + " " + getPrice();
-    }
-
-    //Переопределение: тип контента как String.
-
-    @Override
-    public String getContentType() {
-        return "PRODUCT";
-    }
-
-    //Переопределение: строковое представление для вывода (теперь добавлено!).
-
-    @Override
-    public String getStringRepresentation() {
-        return getName() + " — " + getContentType() + " [simple: " + getPrice() + "]";
-    }
-
-    //Переопределение: имя от super.
 
     @Override
     public String getName() {
-        return super.getName();
+        return name;
+    }
+
+    @Override
+    public double getPrice() {
+        return price;
+    }
+
+    @Override
+    public boolean isSpecial() {
+        return false;
+    }
+
+    @Override
+    public String getStringRepresentation() {
+        return "SimpleProduct: name='" + name + "', price=" + price;
+    }
+
+    @Override
+    public String getContentType() {
+        return "product";  // String, без enum
+    }
+
+    @Override
+    public String toString() {
+        return name + " [simple: " + price + "]";
     }
 }
