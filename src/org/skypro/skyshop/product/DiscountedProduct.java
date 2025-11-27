@@ -1,78 +1,55 @@
 package org.skypro.skyshop.product;
 
-//Продукт со скидкой. Наследует Product, implements Searchable.
- //Цена рассчитывается как базовая минус discount%.
+import org.skypro.skyshop.search.Searchable;  // Только этот импорт
 
-public class DiscountedProduct extends Product {
-    private int discount;  // Скидка в % (0-100)
+//Продукт со скидкой (implements Product + Searchable).
 
-    //Конструктор: устанавливает name, basePrice и discount.
-    //@param name Название продукта.
-    //@param basePrice Базовая цена (>0).
-    //@param discount Скидка (0-100).
-    //@throws IllegalArgumentException Если name null/blank, basePrice <=0, discount <0 или >100.
+public class DiscountedProduct implements Product, Searchable {
+    private String name;
+    private double originalPrice;
+    private double discount;
 
-    public DiscountedProduct(String name, double basePrice, int discount) {
-        super(name, basePrice);  // Устанавливаем базовую цену в super
-        if (discount < 0 || discount > 100) {
-            throw new IllegalArgumentException("Скидка должна быть от 0 до 100%");
-        }
-        this.discount = discount;
+    public DiscountedProduct(String name, double originalPrice, double discount) {
+        this.name = name;
+        this.originalPrice = Math.max(0.0, originalPrice);
+        this.discount = Math.max(0.0, Math.min(1.0, discount));
     }
-
-    //Переопределение: специальный продукт, если скидка >0%.
-
-    @Override
-    public boolean isSpecial() {
-        return discount > 0;  // Специальный, если есть скидка
-    }
-
-    //Переопределение: возвращает цену со скидкой.
-
-    @Override
-    public double getPrice() {
-        return super.getPrice();
-        // basePrice  (1 - discount%)
-    }
-
-    //Геттер для скидки.
-
-    public int getDiscount() {
-        return discount;
-    }
-
-    //Переопределение: строковое представление с базовой ценой и скидкой.
-
-    @Override
-    public String toString() {
-        return getName() + ": " + super.getPrice() + " (" + discount + "% скидка) = " + getPrice();
-    }
-
-    //Переопределение: search term с discounted price.
-
-    @Override
-    public String getSearchTerm() {
-        return getName() + " " + getPrice();  // Имя + цена со скидкой
-    }
-
-    //Переопределение: тип контента.
-
-    @Override
-    public String getContentType() {
-        return "PRODUCT";
-    }
-
-    //Переопределение: строковое представление для поиска/вывод.
-
-    @Override
-    public String getStringRepresentation() {
-        return getName() + " — " + getContentType() + " (discount: " + discount + "%, price: " + getPrice() + ")";
-    }
-
-    //Переопределение: имя от super.
 
     @Override
     public String getName() {
-        return super.getName();
+        return name;
+    }
+
+    @Override
+    public double getPrice() {
+        return originalPrice * (1 - discount);
+    }
+
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
+
+    @Override
+    public String getStringRepresentation() {
+        return "DiscountedProduct: name='" + name + "', originalPrice=" + originalPrice +
+                ", discount=" + (discount * 100) + "%, price=" + getPrice();
+    }
+    @Override
+    public String getContentType() {
+        return "product";  // String, без enum
+    }
+
+    @Override
+    public String toString() {
+        return name + " [discounted: " + getPrice() + "]";
+    }
+
+    public double getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public double getDiscount() {
+        return discount;
     }
 }
